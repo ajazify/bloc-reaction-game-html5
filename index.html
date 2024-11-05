@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chain Reaction - Nuclear Edition</title>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #111;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      user-select: none;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    .title {
+      font-size: 2.5rem;
+      color: #0f0;
+      text-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 15px #ff0, 0 0 20px #ff4500;
+      margin-bottom: 20px;
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(10, 50px);
+      grid-template-rows: repeat(10, 50px);
+      gap: 3px;
+      margin: 20px auto;
+      padding: 10px;
+      background-color: #222;
+      border-radius: 10px;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .player1-turn {
+      box-shadow: 0 0 15px 5px rgba(255, 69, 0, 0.8);
+    }
+
+    .player2-turn {
+      box-shadow: 0 0 15px 5px rgba(66, 135, 245, 0.8);
+    }
+
+    .cell {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #333, #1b1b1b);
+      border-radius: 8px;
+      box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.7), -4px -4px 10px rgba(60, 60, 60, 0.3);
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.3s;
+    }
+
+    .player1 {
+      background-color: #ff4500;
+      box-shadow: 0 0 10px rgba(255, 69, 0, 0.8);
+    }
+
+    .player2 {
+      background-color: #4287f5;
+      box-shadow: 0 0 10px rgba(66, 135, 245, 0.8);
+    }
+
+    .blob {
+      width: 20px;
+      height: 20px;
+      background-color: currentColor;
+      border-radius: 50%;
+      box-shadow: inset -2px -2px 5px rgba(255, 255, 255, 0.3), inset 2px 2px 5px rgba(0, 0, 0, 0.3);
+      animation: blobFloat 1.8s ease-in-out infinite alternate;
+    }
+
+    /* 3D float animation */
+    @keyframes blobFloat {
+      0% {
+        transform: scale(1) rotateX(0) rotateY(0);
+        box-shadow: inset -2px -2px 5px rgba(255, 255, 255, 0.3), inset 2px 2px 5px rgba(0, 0, 0, 0.3);
+      }
+      50% {
+        transform: scale(1.05) rotateX(10deg) rotateY(10deg);
+        box-shadow: inset -2px -2px 8px rgba(255, 255, 255, 0.4), inset 2px 2px 8px rgba(0, 0, 0, 0.5);
+      }
+      100% {
+        transform: scale(1) rotateX(0) rotateY(0);
+        box-shadow: inset -2px -2px 5px rgba(255, 255, 255, 0.3), inset 2px 2px 5px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    .footer {
+      font-size: 1rem;
+      color: #555;
+      margin-top: 20px;
+    }
+
+    .footer span {
+      color: #ff4757;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="title">Chain Reaction - Nuclear Edition</div>
+  <div class="game-board" id="gameBoard"></div>
+  <div class="footer">Made with <span>❤️</span> by Muhammed Ajas A A</div>
+</div>
+
+<script> 
+  const boardSize = 10;
+  let currentPlayer = 1;
+  const board = Array(boardSize * boardSize).fill({ player: 0, count: 0 });
+  const gameBoardElement = document.getElementById("gameBoard");
+
+  function generateBoard() {
+    gameBoardElement.innerHTML = "";
+    board.forEach((_, index) => {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+      cell.addEventListener("click", () => handleCellClick(index));
+      gameBoardElement.appendChild(cell);
+    });
+    updateBoardGlow();
+    renderBoard();
+  }
+
+  function renderBoard() {
+  const cells = gameBoardElement.querySelectorAll(".cell");
+  board.forEach((cellData, index) => {
+    const cell = cells[index];
+    cell.classList.remove("player1", "player2", "spread-animation");
+    cell.innerHTML = '';  // Clear the previous blobs
+
+    if (cellData.player === 1) {
+      cell.classList.add("player1");
+      for (let i = 0; i < cellData.count; i++) { 
+        const blob = document.createElement("div");
+        blob.classList.add("blob");
+        blob.style.backgroundColor = "#ff4500";  // Red for Player 1
+        cell.appendChild(blob);
+      }
+    } else if (cellData.player === 2) {
+      cell.classList.add("player2");
+      for (let i = 0; i < cellData.count; i++) {
+        const blob = document.createElement("div");
+        blob.classList.add("blob");
+        blob.style.backgroundColor = "#4287f5";  // Blue for Player 2
+        cell.appendChild(blob);
+      }
+    }
+  });
+}
+
+
+  function handleCellClick(index) {
+    if (board[index].player && board[index].player !== currentPlayer) return;
+    board[index] = {
+      player: currentPlayer,
+      count: board[index].count + 1,
+    };
+    checkExplosion(index);
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    updateBoardGlow();
+    renderBoard();
+  }
+
+  function checkExplosion(index) {
+    const { count } = board[index];
+    const neighbors = getNeighbors(index);
+    const maxOrbs = neighbors.length;
+
+    if (count >= maxOrbs) {
+      board[index] = { player: 0, count: 0 };
+      neighbors.forEach((neighbor) => {
+        board[neighbor] = {
+          player: currentPlayer,
+          count: board[neighbor].count + 1,
+        };
+        animateExplosion(neighbor);
+        checkExplosion(neighbor);
+      });
+    } 
+  }
+
+  function getNeighbors(index) {
+    const neighbors = [];
+    const row = Math.floor(index / boardSize);
+    const col = index % boardSize;
+
+    if (row > 0) neighbors.push(index - boardSize);
+    if (row < boardSize - 1) neighbors.push(index + boardSize);
+    if (col > 0) neighbors.push(index - 1);
+    if (col < boardSize - 1) neighbors.push(index + 1);
+
+    return neighbors;
+  } 
+
+  function animateExplosion(index) {
+    const cells = gameBoardElement.querySelectorAll(".cell");
+    const cell = cells[index];
+    cell.classList.add("spread-animation");
+  }
+
+  function updateBoardGlow() {
+    gameBoardElement.classList.toggle("player1-turn", currentPlayer === 1);
+    gameBoardElement.classList.toggle("player2-turn", currentPlayer === 2);
+  }
+
+  generateBoard();
+</script>
+
+</body>
+</html>
